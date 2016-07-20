@@ -56,12 +56,15 @@ From then on, you'll only be prompted for authentication on that server unless y
     --user       : connect as a different user than the one in the config file,
                    you must supply the name, you will not be prompted
     --rsa        : use an RSA soft token stored in ~/.stokenrc
+    --log        : log openconnect STDERR to stderr.log and STDOUT to stdout.log
 
 Configuration is in `~/.openc`
 
 If you use `--password` or `--profile` without a parameter, you need to use `--` to indicate the end of the parameter line, like so:
 
     openc.pl --profile -- vpn.server.host
+
+If you set the environment variable `DEBUG` to a True value (e.g. `1`), openc will be more verbose and add timestamps to each thing it writes to the console.
 
 # Notes
 

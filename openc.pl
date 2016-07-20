@@ -23,21 +23,41 @@ use Term::ReadPassword;  # imports read_password() for quiet secret reading
 $Term::ReadPassword::USE_STARS = 1;
 our @SUDO = ('sudo', '-S', '-p', '(sudo) password for %p: ');
 our @RETURN; # for handlers to do inter-sub communication
+our $LOG_OUT = 'stdout.log';
+our $LOG_ERR = 'stderr.log';
 
 # Below line enables Carp::Always for debugging
 if (DEBUG) { eval 'require Carp::Always; Carp::Always->import(); use Data::Dumper;'; }
 
 # utility subs
+sub timestamp() {
+    return strftime('%Y-%m-%dT%H:%M:%S ', localtime(time()));
+}
+
+
 sub say(@) {
     # writing to STDERR with a utility; adds timestamps in DEBUG mode
     my $pre = "# ";
-    DEBUG and $pre = strftime('%Y-%m-%dT%H:%M:%S ', localtime(time())) . $pre;
+    DEBUG and $pre = timestamp() . $pre;
     print STDERR colored(
         ['bright_red'],
         $pre, @_, "\n"
         );
 }
 
+
+sub wrlog($@) {
+    my ($fh) = shift @_;
+    eval {
+        for my $ch (@_) {
+            print $fh $ch;
+            if ($ch =~ /\n$/) { print $fh timestamp() }
+        }
+    };
+    if ($@) {
+        say "Error writing to log: $!"
+    }
+}
 
 sub file_mode($) {
     # returns file mode as either an octal string or an array
@@ -102,9 +122,10 @@ sub get_groups {
 sub stream {
     # handle running a command and interacting with its IO stream
     # call -> stream([command array], regex => \&sub)
-    my ($ar_commands, %handlers) = @_;
+    my ($ar_commands, $log, %handlers) = @_;
     my ($in, $out, $err, $pid);
     my ($stream_out, $stream_err, $reader, $start_time, $retries);
+    my ($errlog, $outlog);
 
     # multiply these to get total time to wait for data entry and the like
     my $reader_timeout = 3;
@@ -125,6 +146,13 @@ sub stream {
     $retries = 0;
     $start_time = time;
     DEBUG and say "Start run";
+    if ($log) {
+        open $errlog, '>', $LOG_ERR or die "Can't write to $LOG_ERR: $!\n";
+        open $outlog, '>', $LOG_OUT or die "Can't write to $LOG_OUT: $!\n";
+        print $errlog timestamp();
+        print $outlog timestamp();
+        say "Recording logs to '$LOG_ERR' (err) and '$LOG_OUT' (out)";
+    }
     STREAM_LOOP: while (waitpid($pid, WNOHANG) >= 0) {
         # while the PID is actually running, keep going
         my @handles = $reader->can_read($reader_timeout);
@@ -144,10 +172,12 @@ sub stream {
             sysread($fh, $ch, 1);
             if ($fno == fileno($err)) {
                 DEBUG and print STDERR colored(['blue'],$ch);
+                $log and wrlog($errlog, $ch);
                 $stream_err .= $ch;
             }
             elsif ($fno == fileno($out)) {
                 DEBUG and print STDERR colored(['green'],$ch);
+                $log and wrlog($outlog, $ch);
                 $stream_out .= $ch;
             }
             # TODO log to err/out files if requested
@@ -275,6 +305,7 @@ sub config_setup {
     my @groups;
     stream(
         \@command,
+        0, # don't log
         qr'^GROUP:\s\[.*\]'m => \&get_groups,
         qr'^PASSCODE:'m => 'TERM',  # TERM is magic, terminates
         qr'^Failed to'm => 'ERROR:Can\'t connect'  # ERROR: is magic, terminates
@@ -406,7 +437,7 @@ sub send_pin {
 
 sub openc {
     # core control for running openconnect
-    my ($host, $hr_config, $use_connect_password_for_sudo, $use_rsa_token, $password) = @_;
+    my ($host, $hr_config, $use_connect_password_for_sudo, $use_rsa_token, $password, $log) = @_;
     my $user = $hr_config->{user};
     my $profile = $hr_config->{profile};
     my $token_code = '0000'; # Default, will try this first
@@ -423,6 +454,7 @@ sub openc {
     }
     stream(
         \@command,
+        $log,
         qr'^GROUP:\s\[.*\]'m => sub { my ($stream, $in) = @_; print $in $profile,"\n"; say("Group: $profile"); },
         qr'^PASSCODE:'m => sub { my ($stream, $in) = @_; print $in prompt("Token code"),"\n"; },
         qr'^PIN:'m => sub { my ($stream, $in) = @_; $token_code = send_pin($in, $token_code); say("Sent token PIN"); },
@@ -450,6 +482,7 @@ sub main {
     my $use_rsa_token = 0;
     my $use_password_file = undef;  # path to connection password file
     my $connect_password = undef;
+    my $log = 0;
 
     GetOptions(
         'profile:s' => \$alt_profile,
@@ -457,6 +490,7 @@ sub main {
         'sudo' => \$use_connect_password_for_sudo, #future
         'rsa!' => \$use_rsa_token,
         'password:s' => \$use_password_file,
+        'log!' => \$log,
     );
 
     # TODO refuse to run if there's already an openconnect up
@@ -496,7 +530,7 @@ sub main {
                 say "Automatically picked $host for this connection";
                 local $| = 1;
                 print "\c[];$host\a";
-                openc($host, $config{$host}, $use_connect_password_for_sudo, $use_rsa_token, $connect_password);
+                openc($host, $config{$host}, $use_connect_password_for_sudo, $use_rsa_token, $connect_password, $log);
             }
             else {
                 say "Multiple configs, you have to specify a host name";
@@ -540,7 +574,7 @@ sub main {
 
         local $| = 1;
         print "\c[];$connect_host\a";
-        openc($connect_host, $config{$connect_host}, $use_connect_password_for_sudo, $use_rsa_token, $connect_password);
+        openc($connect_host, $config{$connect_host}, $use_connect_password_for_sudo, $use_rsa_token, $connect_password, $log);
     }
 }
 
