@@ -301,7 +301,7 @@ sub config_setup {
         }
     }
 
-    my @command = (@$ar_sudo, 'openconnect', '-u', $user, $host);
+    my @command = ('openconnect', '-u', $user, $host);
     my @groups;
     stream(
         \@command,
@@ -359,17 +359,20 @@ sub config {
     defined($config_file) or $config_file = get_config_file();
     defined($host) or $host = '';
     DEBUG && say "Configuring for $host";
-    if (! -f $config_file) {
-        ($host, $user, $profile, $ar_groups) = config_setup($host, $user, $profile);
-        $updated = 1;
-    }
-    else {
+    if (-f $config_file) {
         # TODO this isn't right; should read and update if args were provided
         open my $cf, '<', $config_file or die "Can't read $config_file: $!\n";
         while (<$cf>) {
             my $line = $_;
             $line =~ s/^\s+|\s+$//g; # whitespace trim
-            my ($h, $u, $p, $g) = split(/::/, $line);
+            my ($h, $u, $p, $g);
+            eval {
+                ($h, $u, $p, $g) = split(/::/, $line);
+            };
+            if ($@) {
+                # the line wasn't parseable
+                next;
+            }
             my @g = split(/\|/, $g);
             $h = lc($h);
             $u = lc($u);
@@ -382,12 +385,13 @@ sub config {
             }
         }
     }
-    # If $host isn't in %config by now, add it and mark updated
+    # If $host isn't in %config by now, run setup
     if (length $host && ! exists $config{$host}) {
-        $updated = 1;
+        ($host, $user, $profile, $ar_groups) = config_setup($host, $user, $profile);
         $config{$host}{user} = $user;
         $config{$host}{profile} = $profile;
         $config{$host}{groups} = $ar_groups;
+        $updated = 1;
     }
 
 
