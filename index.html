@@ -42,6 +42,8 @@
 
 <p>You must install <a href="http://www.infradead.org/openconnect/">OpenConnect</a>, version 7.06 or higher. The <code>openconnect</code> binary must be in your PATH.</p>
 
+<p>You must install the <a href="http://stoken.sf.net"><code>stoken</code> utility</a>, and <code>stoken</code> must be in your PATH. (Some token configs do not work with OpenConnect's libstoken support, the CLI always works so we use it instead).</p>
+
 <p>This requires Perl 5.23 or higher for security purposes, though older Perls may work.</p>
 
 <p>If you're on a system where having that recent of a Perl is a problem (OS X, I'm looking at you), or if you want an isolated CPAN install, consider using <a href="https://perlbrew.pl">Perlbrew</a> to install an isolated version, then change the <code>openc.pl</code> shebang to point to it.</p>
@@ -93,6 +95,7 @@ Connected! Ctrl-C to disconnect
 --user       : connect as a different user than the one in the config file,
                you must supply the name, you will not be prompted
 --rsa        : use an RSA soft token stored in ~/.stokenrc
+--log        : log openconnect STDERR to stderr.log and STDOUT to stdout.log
 </code></pre>
 
 <p>Configuration is in <code>~/.openc</code></p>
@@ -102,10 +105,24 @@ Connected! Ctrl-C to disconnect
 <pre><code>openc.pl --profile -- vpn.server.host
 </code></pre>
 
+<p>If you set the environment variable <code>DEBUG</code> to a True value (e.g. <code>1</code>), openc will be more verbose and add timestamps to each thing it writes to the console.</p>
+
 <h1>
 <a id="notes" class="anchor" href="#notes" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Notes</h1>
 
 <p>This software is <strong>alpha</strong> and provided <strong>without warranty of any kind, express or implied</strong>. Use it at your own risk, since it has not been tested thoroughly and might cause issues.</p>
+
+<h2>
+<a id="why-we-use-the-stoken-command" class="anchor" href="#why-we-use-the-stoken-command" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Why we use the <code>stoken</code> command</h2>
+
+<p>OpenConnect supports RSA soft tokens through <code>libstoken</code>. This works 98% of the time, but doesn't work with:</p>
+
+<ul>
+<li>Certain unusal token configurations</li>
+<li>Situations where you need to enter the next token code to re-sync</li>
+</ul>
+
+<p>Using the <code>stoken</code> command is more fragile, in that it requires another external moving part; however, it handles every case I've been able to throw at it, unlike OpenConnect's built-in support.</p>
 
 <h1>
 <a id="license-bsd-2-clause" class="anchor" href="#license-bsd-2-clause" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>LICENSE (BSD 2-clause)</h1>
