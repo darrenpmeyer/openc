@@ -439,6 +439,22 @@ sub send_pin {
 }
 
 
+sub send_tokencode {
+    my ($in, $next) = @_;
+    my $code = ($next ? `stoken --next` : `stoken`);
+    $code =~ s/\s+//gsm;
+
+    unless ($code =~ /^\d{4,10}$/) {  # Token codes should be 4-10 digits, dep on implementation
+        say ("Didn't get a token code, got '$code' instead, bailing.");
+        exit 1;
+    }
+
+    say("Got ".($next ? 'next' : '')."token code".(DEBUG ? ": $code" : ''));
+    print $in $code, "\n";
+    return undef;
+}
+
+
 sub openc {
     # core control for running openconnect
     my ($host, $hr_config, $use_connect_password_for_sudo, $use_rsa_token, $password, $log) = @_;
@@ -447,7 +463,7 @@ sub openc {
     my $token_code = '0000'; # Default, will try this first
 
     my @command = (@SUDO, 'openconnect', '-u', $user); #, '--authgroup', $profile);
-    if ($use_rsa_token) { push @command, '--token-mode=rsa'; }
+    # if ($use_rsa_token) { push @command, '--token-mode=rsa'; }
     push @command, $host;
 
     DEBUG && say("connect command: ",join(' ', @command), "\n");
@@ -460,10 +476,19 @@ sub openc {
         \@command,
         $log,
         qr'^GROUP:\s\[.*\]'m => sub { my ($stream, $in) = @_; print $in $profile,"\n"; say("Group: $profile"); },
-        qr'^PASSCODE:'m => sub { my ($stream, $in) = @_; print $in prompt("Token code"),"\n"; },
+        qr'^PASSCODE:'m => sub {
+            my ($stream, $in) = @_;
+            if ($use_rsa_token) { send_tokencode($in, 0); } 
+            else { print $in prompt("Token code"),"\n"; } },
+        qr'^Token Code:'m => sub {
+            my ($stream, $in) = @_;
+            if ($use_rsa_token) { send_tokencode($in, 1); } # send Next token code
+            else { print $in prompt("Next token code"), "\n" } },
         qr'^PIN:'m => sub { my ($stream, $in) = @_; $token_code = send_pin($in, $token_code); say("Sent token PIN"); },
         qr'^Password:'m => sub { my ($stream, $in) = @_; print $in $password,"\n"; say("Sent password") },
-        qr'^New Password:'m => sub { my ($stream, $in) = @_; print $in get_secret(colored(['yellow'],"--> Password change requested.\n")."Enter new password for $user"),"\n"; },
+        qr'^New Password:'m => sub {
+            my ($stream, $in) = @_;
+            print $in get_secret(colored(['yellow'],"--> Password change requested.\n")."Enter new password for $user"),"\n"; },
         qr'^Verify Password:'m => sub { my ($stream, $in) = @_; print $in get_secret("Enter same password again"),"\n"; },
         qr'\(sudo\) password for .+:'m => (
             $use_connect_password_for_sudo
