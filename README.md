@@ -10,6 +10,8 @@ It's mostly interesting because it interacts with another command-line program u
 
 You must install [OpenConnect](http://www.infradead.org/openconnect/), version 7.06 or higher. The `openconnect` binary must be in your PATH.
 
+You must install the [`stoken` utility](http://stoken.sf.net), and `stoken` must be in your PATH. (Some token configs do not work with OpenConnect's libstoken support, the CLI always works so we use it instead). 
+
 This requires Perl 5.23 or higher for security purposes, though older Perls may work.
 
 If you're on a system where having that recent of a Perl is a problem (OS X, I'm looking at you), or if you want an isolated CPAN install, consider using [Perlbrew](https://perlbrew.pl) to install an isolated version, then change the `openc.pl` shebang to point to it.
