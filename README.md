@@ -10,7 +10,7 @@ It's mostly interesting because it interacts with another command-line program u
 
 You must install [OpenConnect](http://www.infradead.org/openconnect/), version 7.06 or higher. The `openconnect` binary must be in your PATH.
 
-You must install the [`stoken` utility](http://stoken.sf.net), and `stoken` must be in your PATH. (Some token configs do not work with OpenConnect's libstoken support, the CLI always works so we use it instead). 
+You must install the [`stoken` utility](http://stoken.sf.net), and `stoken` must be in your PATH. (Some token configs do not work with OpenConnect's libstoken support, the CLI always works so we use it instead).
 
 This requires Perl 5.23 or higher for security purposes, though older Perls may work.
 
@@ -71,6 +71,15 @@ If you set the environment variable `DEBUG` to a True value (e.g. `1`), openc wi
 # Notes
 
 This software is **alpha** and provided **without warranty of any kind, express or implied**. Use it at your own risk, since it has not been tested thoroughly and might cause issues.
+
+## Why we use the `stoken` command
+
+OpenConnect supports RSA soft tokens through `libstoken`. This works 98% of the time, but doesn't work with:
+
+* Certain unusal token configurations
+* Situations where you need to enter the next token code to re-sync
+
+Using the `stoken` command is more fragile, in that it requires another external moving part; however, it handles every case I've been able to throw at it, unlike OpenConnect's built-in support.
 
 # LICENSE (BSD 2-clause)
 
