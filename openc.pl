@@ -496,7 +496,8 @@ sub openc {
             : sub { my ($stream, $in) = @_; print $in get_secret("Enter sudo password"), "\n"; }
         ),
         qr'^Connected (utun|tun)'m => \&hold_connection,
-        qr'^Failed to'm => 'ERROR:Can\'t connect',
+        qr'^Established DTLS connection'm => \&hold_connection,  # 7.06 and later
+        qr'^Failed to con'm => 'ERROR:Can\'t connect',
         qr'^(Authentication failed\.)|(Login error.)'m => 'ERROR:Authentication failure',
     );
 }
