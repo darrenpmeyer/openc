@@ -1,0 +1,8 @@
+title: Openc
+description: Command-line helper for OpenConnect VPN connections
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-architect
+
+gems:
+  - jekyll-mentions
