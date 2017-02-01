@@ -23,7 +23,7 @@ use Term::ReadPassword;  # imports read_password() for quiet secret reading
 $Term::ReadPassword::USE_STARS = 1;
 our @SUDO = ('sudo', '-S', '-p', '(sudo) password for %p: ');
 our @RETURN; # for handlers to do inter-sub communication
-our @CONF_PATH = ('/etc/openc', File::Spec->catdir($ENV{HOME}, '.openc'), $ENV{HOME});
+our @CONF_PATH = (File::Spec->catdir($ENV{HOME}, '.openc'), $ENV{HOME});
 our $LOG_OUT = 'stdout.log';
 our $LOG_ERR = 'stderr.log';
 
@@ -296,7 +296,13 @@ sub choose {
 sub get_config_file {
     # Gets the configuration file
     # File::Spec->catfile($ENV{HOME},".openc");
-    search_config_file('.openc', 'config');
+    my $path = search_config_file('.openc', 'config');
+    if ($path) { return $path; }
+    else { 
+        say "creating $CONF_PATH[0]";
+        mkdir $CONF_PATH[0];
+        return File::Spec->catfile($CONF_PATH[0], 'config')
+    }
 }
 
 
