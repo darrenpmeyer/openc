@@ -27,8 +27,8 @@ our @CONF_PATH = (File::Spec->catdir($ENV{HOME}, '.openc'), $ENV{HOME});
 our $LOG_OUT = 'stdout.log';
 our $LOG_ERR = 'stderr.log';
 
-# Below line enables Carp::Always for debugging
-if (DEBUG) { eval 'require Carp::Always; Carp::Always->import(); use Data::Dumper;'; }
+# Below line enables Carp::Always, Data::Dumper, and Sub::Util for debugging
+if (DEBUG) { eval 'require Carp::Always; Carp::Always->import(); use Data::Dumper; use Sub::Util "subname";'; }
 
 # utility subs
 sub timestamp() {
@@ -204,7 +204,7 @@ sub stream {
                         $matches++;
                         my $call = $handlers{$regex};
                         if (ref $call eq 'CODE') {
-                            DEBUG and say "Calling $call";
+                            DEBUG and say "Calling ".subname($call);
                             $call->($stream, $in, $out, $err, $pid);
                         }
                         elsif ($call eq 'TERM') {
