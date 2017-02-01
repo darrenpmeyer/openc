@@ -51,7 +51,8 @@ From then on, you'll only be prompted for authentication on that server unless y
     --profile    : alternate connection profile/group; if no name is provided,
                    presents a list of choices from the configuration file
     --password   : a path to a password -file- containing a connection password.
-                   the mode must be less than or equal to 0600; if not specified, will use ~/.openc/password or ~/.opencpw
+                   the mode must be less than or equal to 0600; if not specified,
+                   will use ~/.openc/password or ~/.opencpw
     --sudo       : use the connection password as your local sudo password
                    otherwise you'll be prompted for a sudo password
     --user       : connect as a different user than the one in the config file,
