@@ -23,6 +23,7 @@ use Term::ReadPassword;  # imports read_password() for quiet secret reading
 $Term::ReadPassword::USE_STARS = 1;
 our @SUDO = ('sudo', '-S', '-p', '(sudo) password for %p: ');
 our @RETURN; # for handlers to do inter-sub communication
+our @CONF_PATH = ('/etc/openc', File::Spec->catdir($ENV{HOME}, '.openc'), $ENV{HOME});
 our $LOG_OUT = 'stdout.log';
 our $LOG_ERR = 'stderr.log';
 
@@ -82,6 +83,19 @@ sub file_mode_max($$) {
     return 1;
 }
 
+sub search_config_file {
+    # returns the full path to a named file in the @CONF_PATH
+    # e.g. search_config_path('.opencpw') might return '/etc/openc/.opencpw'
+    # Always returns the FIRST MATCH; if more than one filename is provided, they are searched in order
+    # and the first one to be found is returned
+    foreach my $search_file (@_) {
+        foreach my $search_dir (@CONF_PATH) {
+            my $candidate = File::Spec->canonpath(File::Spec->catfile($search_dir, $search_file));
+            DEBUG and say "Checking if $candidate exists";
+            if (-f $candidate) { return $candidate }
+        }
+    }
+}
 
 sub get_secret {
     # abstraction to read a secret with a prompt (in case I don't always want to use Term::ReadPassword)
@@ -280,8 +294,9 @@ sub choose {
 
 # configuration
 sub get_config_file {
-    # will eventually handle searching multiple paths, currently just a stub
-    File::Spec->catfile($ENV{HOME},".openc");
+    # Gets the configuration file
+    # File::Spec->catfile($ENV{HOME},".openc");
+    search_config_file('.openc', 'config');
 }
 
 
@@ -478,7 +493,7 @@ sub openc {
         qr'^GROUP:\s\[.*\]'m => sub { my ($stream, $in) = @_; print $in $profile,"\n"; say("Group: $profile"); },
         qr'^PASSCODE:'m => sub {
             my ($stream, $in) = @_;
-            if ($use_rsa_token) { send_tokencode($in, 0); } 
+            if ($use_rsa_token) { send_tokencode($in, 0); }
             else { print $in prompt("Token code"),"\n"; } },
         qr'^Token Code:'m => sub {
             my ($stream, $in) = @_;
@@ -528,7 +543,8 @@ sub main {
 
     if (defined $use_password_file) {
         if ($use_password_file eq "") {
-            $use_password_file = File::Spec->catfile($ENV{HOME}, '.opencpw');
+            # $use_password_file = File::Spec->catfile($ENV{HOME}, '.opencpw');
+            $use_password_file = search_config_file('.opencpw','password');
         }
         DEBUG and say "Getting password from file '$use_password_file'";
         eval {
