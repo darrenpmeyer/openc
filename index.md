@@ -51,8 +51,7 @@ From then on, you'll only be prompted for authentication on that server unless y
     --profile    : alternate connection profile/group; if no name is provided,
                    presents a list of choices from the configuration file
     --password   : a path to a password -file- containing a connection password.
-                   the mode must be less than or equal to 0600; if not specified,
-                   will use ~/.opencpw
+                   the mode must be less than or equal to 0600; if not specified, will use ~/.openc/password or ~/.opencpw
     --sudo       : use the connection password as your local sudo password
                    otherwise you'll be prompted for a sudo password
     --user       : connect as a different user than the one in the config file,
@@ -60,7 +59,7 @@ From then on, you'll only be prompted for authentication on that server unless y
     --rsa        : use an RSA soft token stored in ~/.stokenrc
     --log        : log openconnect STDERR to stderr.log and STDOUT to stdout.log
 
-Configuration is in `~/.openc`
+Configuration is in `~/.openc/config` by default. `~/.openc` as a config file is deprecated but still works, and `~/config` will also be read as a last resort.
 
 If you use `--password` or `--profile` without a parameter, you need to use `--` to indicate the end of the parameter line, like so:
 
