@@ -194,7 +194,6 @@ sub stream {
                 $log and wrlog($outlog, $ch);
                 $stream_out .= $ch;
             }
-            # TODO log to err/out files if requested
 
             my $matches = 0;
             for my $regex (keys %handlers) {
@@ -435,10 +434,13 @@ sub profile_menu {
 
 
 # connection handling
+# TODO better handling for global abort
+our $abort = 0;
 sub hold_connection {
     # Holds valid connection open
+    if ($abort) { return $abort; }  # Don't repeat warning for aborted conn
     my ($stream, $in, $out, $err, $pid) = @_;
-    my $abort = 0;
+    # my $abort = 0;
     print STDERR colored(['green'], "Connected! Ctrl-C to disconnect\n");
 
     local $SIG{INT} = sub { $abort = 1; };
