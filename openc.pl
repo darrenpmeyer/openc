@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-require 5.023_000;
+require 5.000_000;
 use strict; use warnings;
 use constant DEBUG => $ENV{DEBUG} || 0;  # set 1 to enable debug logging
 
