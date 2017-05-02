@@ -68,6 +68,12 @@ If you use `--password` or `--profile` without a parameter, you need to use `--`
 
 If you set the environment variable `DEBUG` to a True value (e.g. `1`), openc will be more verbose and add timestamps to each thing it writes to the console.
 
+## Event hooks
+
+If you include a `connect.hook` executable file in your config directory (e.g. `~/.openc/connect.hook`), it will be run on a successfull connection. This is useful for e.g. a script which adds additional routes.
+
+Other event hooks may be possible in the future.
+
 # Notes
 
 This software is **alpha** and provided **without warranty of any kind, express or implied**. Use it at your own risk, since it has not been tested thoroughly and might cause issues.
