@@ -297,7 +297,7 @@ sub get_config_file {
     # File::Spec->catfile($ENV{HOME},".openc");
     my $path = search_config_file('.openc', 'config');
     if ($path) { return $path; }
-    else { 
+    else {
         say "creating $CONF_PATH[0]";
         mkdir $CONF_PATH[0];
         return File::Spec->catfile($CONF_PATH[0], 'config')
@@ -441,6 +441,15 @@ sub hold_connection {
     if ($abort) { return $abort; }  # Don't repeat warning for aborted conn
     my ($stream, $in, $out, $err, $pid) = @_;
     # my $abort = 0;
+
+    # Run the connect hook
+    my $connect_hook = search_config_file('connect.hook');
+    if ($connect_hook and -f $connect_hook) {
+        # TODO pass connnection information to the hook
+        print STDERR colored(['yellow'], "Connection established, executing hook: '$connect_hook'\n");
+        system($connect_hook);
+    }
+
     print STDERR colored(['green'], "Connected! Ctrl-C to disconnect\n");
 
     local $SIG{INT} = sub { $abort = 1; };
