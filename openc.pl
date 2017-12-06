@@ -8,6 +8,7 @@ use POSIX ':sys_wait_h';  # POSIX syswait constants, e.g. WNOHANG
 use POSIX 'strftime';     # POSIX strftime function
 use Symbol 'gensym';      # Allow creation of an anonymous filehandle
 use IO::Select;           # select() calls on multiple handles
+use IO::Handle;           # flush() capability for file handles
 use IPC::Open3;           # open3() - interaction with child in/out/err
 use Time::HiRes 'time','sleep'; # sub-second time() and sleep()
 use Term::ANSIColor;      # color() and colored() for ANSI term support
@@ -54,6 +55,7 @@ sub wrlog($@) {
             print $fh $ch;
             if ($ch =~ /\n$/) { print $fh timestamp() }
         }
+        $fh->flush();
     };
     if ($@) {
         say "Error writing to log: $!"
@@ -163,6 +165,7 @@ sub stream {
     if ($log) {
         open $errlog, '>', $LOG_ERR or die "Can't write to $LOG_ERR: $!\n";
         open $outlog, '>', $LOG_OUT or die "Can't write to $LOG_OUT: $!\n";
+
         print $errlog timestamp();
         print $outlog timestamp();
         say "Recording logs to '$LOG_ERR' (err) and '$LOG_OUT' (out)";
@@ -508,7 +511,7 @@ sub openc {
         \@command,
         $log,
         qr'^GROUP:\s\[.*\]'m => sub { my ($stream, $in) = @_; print $in $profile,"\n"; say("Group: $profile"); },
-        qr'^PASSCODE:'m => sub {
+        qr'^(?:\:)?PASSCODE:'m => sub {
             my ($stream, $in) = @_;
             if ($use_rsa_token) { send_tokencode($in, 0); }
             else { print $in prompt("Token code"),"\n"; } },
