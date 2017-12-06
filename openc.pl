@@ -3,6 +3,8 @@ require 5.000_000;
 use strict; use warnings;
 use constant DEBUG => $ENV{DEBUG} || 0;  # set 1 to enable debug logging
 
+our $VERSION = "1.002";
+
 # core modules
 use POSIX ':sys_wait_h';  # POSIX syswait constants, e.g. WNOHANG
 use POSIX 'strftime';     # POSIX strftime function
@@ -27,6 +29,11 @@ our @RETURN; # for handlers to do inter-sub communication
 our @CONF_PATH = (File::Spec->catdir($ENV{HOME}, '.openc'), $ENV{HOME});
 our $LOG_OUT = 'stdout.log';
 our $LOG_ERR = 'stderr.log';
+
+# common regexes for VPN events; if used more than once, they go here
+our $RE_GROUP    = qr'^GROUP:\s\[.*\]'m;
+our $RE_PASSCODE = qr'^(?:\:)?PASSCODE:'m; 
+our $RE_CONNECT_FAIL = qr'^Failed to con'm;
 
 # Below line enables Carp::Always, Data::Dumper, and Sub::Util for debugging
 if (DEBUG) { eval 'require Carp::Always; Carp::Always->import(); use Data::Dumper; use Sub::Util "subname";'; }
@@ -329,9 +336,9 @@ sub config_setup {
     stream(
         \@command,
         0, # don't log
-        qr'^GROUP:\s\[.*\]'m => \&get_groups,
-        qr'^PASSCODE:'m => 'TERM',  # TERM is magic, terminates
-        qr'^Failed to'm => 'ERROR:Can\'t connect'  # ERROR: is magic, terminates
+        $RE_GROUP => \&get_groups,
+        $RE_PASSCODE => 'TERM',  # TERM is magic, terminates
+        $RE_CONNECT_FAIL => 'ERROR:Can\'t connect'  # ERROR: is magic, terminates
     );
     @groups = @RETURN;
     DEBUG and say "Got group list\n -> ",join("\n -> ", @groups);
@@ -510,8 +517,8 @@ sub openc {
     stream(
         \@command,
         $log,
-        qr'^GROUP:\s\[.*\]'m => sub { my ($stream, $in) = @_; print $in $profile,"\n"; say("Group: $profile"); },
-        qr'^(?:\:)?PASSCODE:'m => sub {
+        $RE_GROUP => sub { my ($stream, $in) = @_; print $in $profile,"\n"; say("Group: $profile"); },
+        $RE_PASSCODE => sub {
             my ($stream, $in) = @_;
             if ($use_rsa_token) { send_tokencode($in, 0); }
             else { print $in prompt("Token code"),"\n"; } },
@@ -532,7 +539,7 @@ sub openc {
         ),
         qr'^Connected (utun|tun)'m => \&hold_connection,
         qr'^Established DTLS connection'm => \&hold_connection,  # 7.06 and later
-        qr'^Failed to con'm => 'ERROR:Can\'t connect',
+        $RE_CONNECT_FAIL => 'ERROR:Can\'t connect',
         qr'^(Authentication failed\.)|(Login error.)'m => 'ERROR:Authentication failure',
     );
 }
@@ -548,6 +555,8 @@ sub main {
     my $use_password_file = undef;  # path to connection password file
     my $connect_password = undef;
     my $log = 0;
+
+    say "Starting openc $VERSION";
 
     GetOptions(
         'profile:s' => \$alt_profile,
