@@ -3,7 +3,7 @@ require 5.000_000;
 use strict; use warnings;
 use constant DEBUG => $ENV{DEBUG} || 0;  # set 1 to enable debug logging
 
-our $VERSION = "1.002";
+our $VERSION = "1.003";
 
 # core modules
 use POSIX ':sys_wait_h';  # POSIX syswait constants, e.g. WNOHANG
@@ -145,7 +145,7 @@ sub get_groups {
 sub stream {
     # handle running a command and interacting with its IO stream
     # call -> stream([command array], regex => \&sub)
-    my ($ar_commands, $log, %handlers) = @_;
+    my ($ar_commands, $log, $profile, %handlers) = @_;
     my ($in, $out, $err, $pid);
     my ($stream_out, $stream_err, $reader, $start_time, $retries);
     my ($errlog, $outlog);
@@ -169,6 +169,7 @@ sub stream {
     $retries = 0;
     $start_time = time;
     DEBUG and say "Start run";
+    DEBUG and say "Profile '$profile'";
     if ($log) {
         open $errlog, '>', $LOG_ERR or die "Can't write to $LOG_ERR: $!\n";
         open $outlog, '>', $LOG_OUT or die "Can't write to $LOG_OUT: $!\n";
@@ -214,7 +215,7 @@ sub stream {
                         my $call = $handlers{$regex};
                         if (ref $call eq 'CODE') {
                             DEBUG and say "Calling ".subname($call);
-                            $call->($stream, $in, $out, $err, $pid);
+                            $call->($stream, $in, $out, $err, $pid, $profile);
                         }
                         elsif ($call eq 'TERM') {
                             DEBUG and say "Stopping on request";
@@ -336,6 +337,7 @@ sub config_setup {
     stream(
         \@command,
         0, # don't log
+        '', # no profile
         $RE_GROUP => \&get_groups,
         $RE_PASSCODE => 'TERM',  # TERM is magic, terminates
         $RE_CONNECT_FAIL => 'ERROR:Can\'t connect'  # ERROR: is magic, terminates
@@ -449,15 +451,19 @@ our $abort = 0;
 sub hold_connection {
     # Holds valid connection open
     if ($abort) { return $abort; }  # Don't repeat warning for aborted conn
-    my ($stream, $in, $out, $err, $pid) = @_;
+    my ($stream, $in, $out, $err, $pid, $profile) = @_;
     # my $abort = 0;
 
-    # Run the connect hook
-    my $connect_hook = search_config_file('connect.hook');
-    if ($connect_hook and -f $connect_hook) {
-        # TODO pass connnection information to the hook
-        print STDERR colored(['yellow'], "Connection established, executing hook: '$connect_hook'\n");
-        system($connect_hook);
+    # Run the connect hooks; first standard, then profile-based
+    print STDERR colored(['yellow'], "Connection established, executing hooks\n");
+
+    for my $hook ('', '-' . $profile) {
+        my $connect_hook = search_config_file('connect' . $hook . '.hook');
+        if ($connect_hook and -f $connect_hook) {
+            # TODO pass connnection information to the hook
+            print STDERR colored(['yellow'], "-> executing hook: '$connect_hook'\n");
+            system($connect_hook);
+        }
     }
 
     print STDERR colored(['green'], "Connected! Ctrl-C to disconnect\n");
@@ -517,6 +523,7 @@ sub openc {
     stream(
         \@command,
         $log,
+        $profile, 
         $RE_GROUP => sub { my ($stream, $in) = @_; print $in $profile,"\n"; say("Group: $profile"); },
         $RE_PASSCODE => sub {
             my ($stream, $in) = @_;

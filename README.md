@@ -68,9 +68,9 @@ If you set the environment variable `DEBUG` to a True value (e.g. `1`), openc wi
 
 ## Event hooks
 
-If you include a `connect.hook` executable file in your config directory (e.g. `~/.openc/connect.hook`), it will be run on a successfull connection. This is useful for e.g. a script which adds additional routes.
+If you include a `connect.hook` executable file in your config directory (e.g. `~/.openc/connect.hook`), it will be run on any successful connection. This is useful for e.g. a script which adds additional routes.
 
-Other event hooks may be possible in the future.
+You may also per-profile connect hooks, with the file name format `connect-PROFILENAME.hook`; for example, when connecting to the `Contractor` profile, `openc` will execute `~/.openc/connect-Contractor.hook` if it exists.
 
 # Notes
 
