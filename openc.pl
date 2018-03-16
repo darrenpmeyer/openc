@@ -31,7 +31,7 @@ our $LOG_OUT = 'stdout.log';
 our $LOG_ERR = 'stderr.log';
 
 # common regexes for VPN events; if used more than once, they go here
-our $RE_GROUP    = qr'^GROUP:\s\[.*\]'m;
+our $RE_GROUP    = qr'^GROUP:\s+\[.*\]'m;
 our $RE_PASSCODE = qr'^(?:\:)?PASSCODE:'m; 
 our $RE_CONNECT_FAIL = qr'^Failed to con'm;
 
