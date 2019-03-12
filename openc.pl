@@ -3,7 +3,7 @@ require 5.000_000;
 use strict; use warnings;
 use constant DEBUG => $ENV{DEBUG} || 0;  # set 1 to enable debug logging
 
-our $VERSION = "1.003";
+our $VERSION = "1.004";
 
 # core modules
 use POSIX ':sys_wait_h';  # POSIX syswait constants, e.g. WNOHANG
@@ -546,6 +546,7 @@ sub openc {
         ),
         qr'^Connected (utun|tun)'m => \&hold_connection,
         qr'^Established DTLS connection'm => \&hold_connection,  # 7.06 and later
+        qr'^CSTP connected'm => \&hold_connection, # not sure -- seems to be a new possible server response as of 12. Mar 2019
         $RE_CONNECT_FAIL => 'ERROR:Can\'t connect',
         qr'^(Authentication failed\.)|(Login error.)'m => 'ERROR:Authentication failure',
     );
