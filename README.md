@@ -72,6 +72,8 @@ If you include a `connect.hook` executable file in your config directory (e.g. `
 
 You may also per-profile connect hooks, with the file name format `connect-PROFILENAME.hook`; for example, when connecting to the `Contractor` profile, `openc` will execute `~/.openc/connect-Contractor.hook` if it exists.
 
+As of version 1.005, you can also use *disconnect* hooks. Naming follows the standard above, except that filenames begin with `disconnect`. Note that these disconnect hooks run reliably when disconnection is *requested* by either the client or server sides; however, they may not run if the `openc` perl process is killed, there are unexpected crashes, etc. Therefore, disconnect hooks are not recommended for essential post-disconnection tasks -- it would be better to build a monitor to handle such use cases.
+
 # Notes
 
 This software is **alpha** and provided **without warranty of any kind, express or implied**. Use it at your own risk, since it has not been tested thoroughly and might cause issues.

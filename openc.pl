@@ -3,7 +3,7 @@ require 5.000_000;
 use strict; use warnings;
 use constant DEBUG => $ENV{DEBUG} || 0;  # set 1 to enable debug logging
 
-our $VERSION = "1.004";
+our $VERSION = "1.005";
 
 # core modules
 use POSIX ':sys_wait_h';  # POSIX syswait constants, e.g. WNOHANG
@@ -474,6 +474,19 @@ sub hold_connection {
         sleep(2);
     }
     say "Disconnection requested";
+    
+    # Run disconnect hooks using same logic as above
+    print STDERR colored(['yellow'], "Looking for disconnect hooks to execute\n");
+
+    for my $hook ('', '-' . $profile) {
+        my $disconnect_hook = search_config_file('disconnect' . $hook . '.hook');
+        if ($disconnect_hook and -f $disconnect_hook) {
+            # TODO pass connnection information to the hook
+            print STDERR colored(['yellow'], "-> executing hook: '$disconnect_hook'\n");
+            system($disconnect_hook);
+        }
+    }
+
     return $abort;
 }
 
