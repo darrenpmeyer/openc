@@ -12,8 +12,6 @@ You must install [OpenConnect](http://www.infradead.org/openconnect/), version 7
 
 You must install the [`stoken` utility](http://stoken.sf.net), and `stoken` must be in your PATH. (Some token configs do not work with OpenConnect's libstoken support, the CLI always works so we use it instead).
 
-This requires Perl 5.23 or higher for security purposes, though older Perls may work.
-
 If you're on a system where having that recent of a Perl is a problem (OS X, I'm looking at you), or if you want an isolated CPAN install, consider using [Perlbrew](https://perlbrew.pl) to install an isolated version, then change the `openc.pl` shebang to point to it.
 
 Depending on your Perl distribution, you may need to the following CPAN modules:
@@ -67,6 +65,14 @@ If you use `--password` or `--profile` without a parameter, you need to use `--`
     openc.pl --profile -- vpn.server.host
 
 If you set the environment variable `DEBUG` to a True value (e.g. `1`), openc will be more verbose and add timestamps to each thing it writes to the console.
+
+## Event hooks
+
+If you include a `connect.hook` executable file in your config directory (e.g. `~/.openc/connect.hook`), it will be run on any successful connection. This is useful for e.g. a script which adds additional routes.
+
+You may also per-profile connect hooks, with the file name format `connect-PROFILENAME.hook`; for example, when connecting to the `Contractor` profile, `openc` will execute `~/.openc/connect-Contractor.hook` if it exists.
+
+As of version 1.005, you can also use *disconnect* hooks. Naming follows the standard above, except that filenames begin with `disconnect`. Note that these disconnect hooks run reliably when disconnection is *requested* by either the client or server sides; however, they may not run if the `openc` perl process is killed, there are unexpected crashes, etc. Therefore, disconnect hooks are not recommended for essential post-disconnection tasks -- it would be better to build a monitor to handle such use cases.
 
 # Notes
 
