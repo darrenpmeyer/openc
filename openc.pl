@@ -3,7 +3,7 @@ require 5.000_000;
 use strict; use warnings;
 use constant DEBUG => $ENV{DEBUG} || 0;  # set 1 to enable debug logging
 
-our $VERSION = "1.005";
+our $VERSION = "1.006";
 
 # core modules
 use POSIX ':sys_wait_h';  # POSIX syswait constants, e.g. WNOHANG
@@ -445,6 +445,21 @@ sub profile_menu {
 }
 
 
+# abstraction for processing hooks
+sub run_hooks {
+    my ($prefix, $suffix, @pattern_list) = @_;
+	for my $hook (@pattern_list) {
+		my $run_hook = search_config_file($prefix . $hook . $suffix);
+		if ($run_hook and -f $run_hook) {
+			# TODO pass connection information? How will the signature change?
+			print STDERR colored(['yellow'], "-> executing hook '$run_hook'\n");
+			system($run_hook);
+		}
+	}    
+	return 1;
+}
+
+
 # connection handling
 # TODO better handling for global abort
 our $abort = 0;
@@ -456,16 +471,8 @@ sub hold_connection {
 
     # Run the connect hooks; first standard, then profile-based
     print STDERR colored(['yellow'], "Connection established, executing hooks\n");
-
-    for my $hook ('', '-' . $profile) {
-        my $connect_hook = search_config_file('connect' . $hook . '.hook');
-        if ($connect_hook and -f $connect_hook) {
-            # TODO pass connnection information to the hook
-            print STDERR colored(['yellow'], "-> executing hook: '$connect_hook'\n");
-            system($connect_hook);
-        }
-    }
-
+	run_hooks('connect', '.hook', '', '-'.$profile);
+ 
     print STDERR colored(['green'], "Connected! Ctrl-C to disconnect\n");
 
     local $SIG{INT} = sub { $abort = 1; };
@@ -477,15 +484,7 @@ sub hold_connection {
     
     # Run disconnect hooks using same logic as above
     print STDERR colored(['yellow'], "Looking for disconnect hooks to execute\n");
-
-    for my $hook ('', '-' . $profile) {
-        my $disconnect_hook = search_config_file('disconnect' . $hook . '.hook');
-        if ($disconnect_hook and -f $disconnect_hook) {
-            # TODO pass connnection information to the hook
-            print STDERR colored(['yellow'], "-> executing hook: '$disconnect_hook'\n");
-            system($disconnect_hook);
-        }
-    }
+	run_hooks('disconnect', '.hook', '', '-'.$profile);
 
     return $abort;
 }
